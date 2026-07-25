@@ -1,0 +1,64 @@
+#!/bin/zsh
+set -euo pipefail
+
+PROJECT_DIR="${0:A:h:h}"
+MODEL="$PROJECT_DIR/runtime/models/vosk-model-small-cn-0.22"
+PYTHON="$PROJECT_DIR/runtime/venv/bin/python"
+WORK="$PROJECT_DIR/work/tests"
+WAKE_AIFF="$WORK/wake.aiff"
+EXIT_AIFF="$WORK/exit.aiff"
+SENTENCE_AIFF="$WORK/exit-sentence.aiff"
+WAKE_WAV="$WORK/wake.wav"
+EXIT_WAV="$WORK/exit.wav"
+SENTENCE_WAV="$WORK/exit-sentence.wav"
+SEQUENCE_WAV="$WORK/wake-exit.wav"
+NEGATIVE_WAV="$WORK/embedded-exit.wav"
+REWAKE_WAV="$WORK/wake-exit-wake.wav"
+MISSED_EXIT_WAV="$WORK/missed-exit-wake.wav"
+
+[[ -d "$MODEL" ]] || { echo "Run scripts/build.sh first." >&2; exit 2; }
+command -v ffmpeg >/dev/null 2>&1 || { echo "ffmpeg is required." >&2; exit 3; }
+mkdir -p "$WORK"
+
+voice=""
+for candidate in Tingting Yu-shu Meijia; do
+  if say -v '?' | awk '{print $1}' | grep -x "$candidate" >/dev/null; then
+    voice="$candidate"
+    break
+  fi
+done
+[[ -n "$voice" ]] || { echo "Install a macOS Mandarin voice." >&2; exit 4; }
+
+say -v "$voice" -r 155 -o "$WAKE_AIFF" "小亮小亮"
+say -v "$voice" -r 155 -o "$EXIT_AIFF" "退出"
+say -v "$voice" -r 155 -o "$SENTENCE_AIFF" "请帮我退出这个程序"
+ffmpeg -hide_banner -loglevel error -y -i "$WAKE_AIFF" -ar 16000 -ac 1 -c:a pcm_s16le "$WAKE_WAV"
+ffmpeg -hide_banner -loglevel error -y -i "$EXIT_AIFF" -ar 16000 -ac 1 -c:a pcm_s16le "$EXIT_WAV"
+ffmpeg -hide_banner -loglevel error -y -i "$SENTENCE_AIFF" -ar 16000 -ac 1 -c:a pcm_s16le "$SENTENCE_WAV"
+ffmpeg -hide_banner -loglevel error -y \
+  -i "$WAKE_WAV" -f lavfi -t 4 -i anullsrc=r=16000:cl=mono -i "$EXIT_WAV" \
+  -filter_complex '[0:a][1:a][2:a]concat=n=3:v=0:a=1[out]' -map '[out]' -c:a pcm_s16le "$SEQUENCE_WAV"
+ffmpeg -hide_banner -loglevel error -y \
+  -i "$WAKE_WAV" -f lavfi -t 4 -i anullsrc=r=16000:cl=mono -i "$SENTENCE_WAV" \
+  -filter_complex '[0:a][1:a][2:a]concat=n=3:v=0:a=1[out]' -map '[out]' -c:a pcm_s16le "$NEGATIVE_WAV"
+ffmpeg -hide_banner -loglevel error -y \
+  -i "$WAKE_WAV" -f lavfi -t 4 -i anullsrc=r=16000:cl=mono \
+  -i "$EXIT_WAV" -f lavfi -t 4 -i anullsrc=r=16000:cl=mono -i "$WAKE_WAV" \
+  -filter_complex '[0:a][1:a][2:a][3:a][4:a]concat=n=5:v=0:a=1[out]' -map '[out]' -c:a pcm_s16le "$REWAKE_WAV"
+ffmpeg -hide_banner -loglevel error -y \
+  -i "$WAKE_WAV" -f lavfi -t 4 -i anullsrc=r=16000:cl=mono -i "$WAKE_WAV" \
+  -filter_complex '[0:a][1:a][2:a]concat=n=3:v=0:a=1[out]' -map '[out]' -c:a pcm_s16le "$MISSED_EXIT_WAV"
+
+run_test() {
+  local name="$1" wav="$2" expected="$3"
+  echo "$name:"
+  PYTHONPATH="$($PYTHON -c 'import site; print(site.getsitepackages()[0])')" \
+    "$PYTHON" "$PROJECT_DIR/wake_listener.py" \
+    --model "$MODEL" --config "$PROJECT_DIR/config.example.json" \
+    --wav "$wav" --expect-sequence "$expected"
+}
+
+run_test positive_state_machine "$SEQUENCE_WAV" wake,exit
+run_test embedded_exit_negative "$NEGATIVE_WAV" wake
+run_test wake_exit_wake_regression "$REWAKE_WAV" wake,exit,wake
+run_test missed_exit_next_wake_recovery "$MISSED_EXIT_WAV" wake,wake

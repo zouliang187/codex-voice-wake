@@ -1,0 +1,9 @@
+.DS_Store
+runtime/
+build/
+work/
+*.aiff
+*.wav
+*.log
+__pycache__/
+*.pyc

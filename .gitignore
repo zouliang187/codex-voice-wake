@@ -1,0 +1,11 @@
+.DS_Store
+local-project/
+runtime/
+build/
+work/
+*.aiff
+*.wav
+*.log
+__pycache__/
+*.pyc
+

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Voice Wake"
+  short_description: "Turn macOS Codex Voice into a local wake-word assistant"
+  default_prompt: "Use $codex-voice-wake to install and verify a private local wake-word launcher for ChatGPT Voice on this Mac."

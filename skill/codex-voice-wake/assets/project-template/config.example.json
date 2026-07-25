@@ -1,0 +1,19 @@
+{
+  "wakePhrases": ["小亮小亮", "小亮 小亮", "少量少量", "少量 少量"],
+  "exitPhrases": ["退出"],
+  "exitArmDelaySeconds": 3,
+  "postExitSuppressSeconds": 3,
+  "acknowledgementEnabled": true,
+  "acknowledgementText": "在呢",
+  "acknowledgementVoice": "Tingting",
+  "acknowledgementRate": 185,
+  "codexBundleIdentifier": "com.openai.codex",
+  "activationDelayMilliseconds": 900,
+  "sendVoiceHotkey": true,
+  "voiceHotkey": {
+    "keyCode": 90,
+    "modifiers": []
+  },
+  "logTranscripts": false
+}
+
