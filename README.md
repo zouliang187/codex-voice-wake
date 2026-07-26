@@ -39,11 +39,20 @@ platform. Keep ChatGPT running for the proven first setup.
 
 ```sh
 git clone https://github.com/zouliang187/codex-voice-wake.git
-mkdir -p "$HOME/.agents/skills"
-cp -R codex-voice-wake/skill/codex-voice-wake "$HOME/.agents/skills/"
+skill_root="${CODEX_HOME:-$HOME/.codex}/skills"
+mkdir -p "$skill_root"
+cp -R codex-voice-wake/skill/codex-voice-wake "$skill_root/"
 ```
 
-On Windows PowerShell, copy the Skill to `$HOME\.agents\skills\codex-voice-wake`.
+On Windows PowerShell:
+
+```powershell
+$CodexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $HOME ".codex" }
+$SkillRoot = Join-Path $CodexHome "skills"
+New-Item -ItemType Directory -Force -Path $SkillRoot | Out-Null
+Copy-Item .\codex-voice-wake\skill\codex-voice-wake -Destination $SkillRoot -Recurse -Force
+```
+
 Restart Codex if it does not appear, then invoke:
 
 ```text

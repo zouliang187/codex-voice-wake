@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -73,6 +74,31 @@ class ScaffoldProjectTests(unittest.TestCase):
         target, _ = self.scaffold("windows")
         self.assertTrue((target / "wake_service.py").is_file())
         self.assertTrue((target / "scripts" / "install.ps1").is_file())
+
+    def test_unicode_config_with_ascii_only_console(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            target = Path(temporary) / "project"
+            environment = os.environ.copy()
+            environment["PYTHONIOENCODING"] = "ascii:strict"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--platform",
+                    "windows",
+                    "--target",
+                    str(target),
+                    "--wake-phrase",
+                    "电脑，请听",
+                ],
+                check=True,
+                text=True,
+                capture_output=True,
+                env=environment,
+            )
+            config = json.loads((target / "config.json").read_text(encoding="utf-8"))
+            self.assertEqual(config["wakePhrases"], ["电脑，请听"])
+            self.assertIn("Configured wake phrase variants: 1", result.stdout)
 
     def test_refuses_nonempty_target(self):
         with tempfile.TemporaryDirectory() as temporary:

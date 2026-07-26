@@ -80,8 +80,11 @@ def main():
         encoding="utf-8",
     )
 
-    print("Created %s project: %s" % (args.platform, target))
-    print("Wake phrases: %s" % ", ".join(wake_phrases))
+    # Keep stdout ASCII-only so Windows hosts using a legacy console encoding do
+    # not fail after successfully writing a Unicode config. Avoid echoing the
+    # user's private wake phrase as a side benefit.
+    print("Created %s project." % args.platform)
+    print("Configured wake phrase variants: %d" % len(wake_phrases))
     print("Review config.json, then follow the platform README reference in the Skill.")
     return 0
 
