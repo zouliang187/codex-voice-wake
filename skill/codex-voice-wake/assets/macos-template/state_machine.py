@@ -39,7 +39,11 @@ class WakeStateMachine:
             return None
 
         if self.state == "idle":
-            if audio_clock < self.wake_armed_at or candidate not in self.wake_phrases:
+            if (
+                kind != "final"
+                or audio_clock < self.wake_armed_at
+                or candidate not in self.wake_phrases
+            ):
                 return None
             self.state = "waiting_exit"
             self.exit_armed_at = audio_clock + self.exit_arm_delay
@@ -54,24 +58,13 @@ class WakeStateMachine:
         if audio_clock < self.exit_armed_at:
             return None
 
-        # EXIT is final-only and wins over recovery wake. Return to idle before
-        # the caller sends Escape so a UI action cannot strand the state.
+        # EXIT is final-only. Return to idle before the caller sends Escape so
+        # a UI action cannot strand the state.
         if kind == "final" and candidate in self.exit_phrases:
             self.state = "idle"
             self.wake_armed_at = audio_clock + self.post_exit_suppress
             self.events.append("exit")
             return {"event": "exit", "matched": candidate, "state": self.state}
 
-        # Voice may have closed outside this process. A deliberate next wake is
-        # a recovery/new-session request; there is no conversation timeout.
-        if candidate not in self.wake_phrases:
-            return None
-        self.state = "waiting_exit"
-        self.exit_armed_at = audio_clock + self.exit_arm_delay
-        self.events.append("wake")
-        return {
-            "event": "wake",
-            "matched": candidate,
-            "state": self.state,
-            "recovered": True,
-        }
+        # Wake phrases inside an active conversation are ordinary text.
+        return None

@@ -1,1 +1,1 @@
-把 Codex 变成一台“能叫醒”的桌面智能音箱：先自选一句唤醒词，本机确认后进入 ChatGPT Voice；说退出词回到待唤醒，漏掉退出也能自动恢复。现已整理成开源 Codex Skill，音频默认只在本机内存处理。macOS 有实机闭环经验，Windows 仍是实验性实现，欢迎试用、反馈和 Star：https://github.com/zouliang187/codex-voice-wake
+把 Codex 变成一台“能叫醒”的桌面智能音箱：先自选一句唤醒词，本机确认后进入 ChatGPT Voice；独立说退出词回到待唤醒，长句里提到口令不会触发。现已整理成开源 Codex Skill，音频默认只在本机内存处理。macOS 有实机闭环经验，Windows 仍是实验性实现，欢迎试用、反馈和 Star：https://github.com/zouliang187/codex-voice-wake

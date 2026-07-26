@@ -15,7 +15,9 @@ wake-phrase launchers for ChatGPT desktop Voice on macOS and Windows.
 ## Change rules
 
 - Ask for a custom wake phrase before scaffolding; never hard-code one user's phrase.
-- Preserve wake, standalone-exit, second-wake, and missed-exit recovery behavior.
+- Preserve final standalone wake, final standalone exit, and second-wake behavior.
+- Ignore both command phrases when embedded in longer speech, and ignore wake
+  phrases while Voice is active.
 - Keep audio local and in memory; transcript logging must default to off.
 - Preserve the macOS bundle identifier and fixed designated requirement unless a
   migration and permission impact are explicitly documented.

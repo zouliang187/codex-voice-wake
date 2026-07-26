@@ -31,8 +31,8 @@ platform. Keep ChatGPT running for the proven first setup.
 - A safe scaffolder that requires the chosen wake phrase and refuses to
   overwrite a non-empty target.
 - Editable wake, exit, acknowledgement, input-device, and privacy settings.
-- Missed-exit recovery: if Voice closes elsewhere, the next wake phrase starts
-  a new attempt instead of being ignored forever.
+- State-isolated commands: only a final standalone wake phrase works while
+  idle, and only a final standalone exit phrase works during Voice.
 - Windows CI plus platform-independent state-machine regressions.
 
 ## Install the Skill
@@ -104,9 +104,11 @@ complete result. On the target computer, from a normal non-Voice screen:
 
 1. Naturally say the chosen wake phrase and hear the local acknowledgement.
 2. Confirm the separate Voice UI appears.
-3. Wait at least three seconds and say the standalone exit phrase.
-4. Confirm Voice closes.
-5. Say the wake phrase again and confirm a second Voice session starts.
+3. Say sentences containing the wake and exit phrases; confirm neither causes
+   a state change.
+4. Wait at least three seconds and say the standalone exit phrase.
+5. Confirm Voice closes.
+6. Say the wake phrase again and confirm a second Voice session starts.
 
 ## Privacy and risks
 

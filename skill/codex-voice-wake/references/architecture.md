@@ -2,20 +2,20 @@
 
 ## Shared behavior
 
-Both platform templates use a constrained Vosk grammar and the same
-dependency-free state machine. `wakePhrases` and `exitPhrases` are arrays of
-user-selected Unicode strings. Matching applies NFKC normalization, case
-folding, and removes punctuation/spacing, then requires equality.
+Both platform templates use a constrained Vosk grammar while idle, unrestricted
+recognition during Voice, and the same dependency-free state machine.
+`wakePhrases` and `exitPhrases` are arrays of user-selected Unicode strings.
+Matching applies NFKC normalization, case folding, and removes
+punctuation/spacing, then requires final whole-utterance equality.
 
 ```text
 idle --custom wake--> waiting_exit --standalone exit--> idle
-                              \
-                               --custom wake--> waiting_exit (recovered)
+                              \--ordinary speech, including wake--> waiting_exit
 ```
 
-EXIT is final-only and checked before recovery wake. State changes to `idle`
-before Escape is emitted. The recovery branch stays in `waiting_exit`; there is
-no conversation timeout.
+Both commands are final-only whole-utterance matches. The wake phrase is ignored
+in `waiting_exit`. State changes to `idle` before Escape is emitted; there is no
+conversation timeout.
 
 Audio is processed as 16 kHz mono PCM in memory. Transcript logging is off by
 default. Phrase text is stored in the user's local `config.json`; audio is not.

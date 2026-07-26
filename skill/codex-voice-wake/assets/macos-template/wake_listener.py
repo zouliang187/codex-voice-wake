@@ -51,17 +51,16 @@ class Detector:
 
     def set_recognition_mode(self, mode):
         if mode == "wake":
-            phrases = self.wake_grammar
+            grammar = list(dict.fromkeys([*self.wake_grammar, "[unk]"]))
+            self.recognizer = KaldiRecognizer(
+                self.model,
+                16000,
+                json.dumps(grammar, ensure_ascii=False),
+            )
         elif mode == "waiting":
-            phrases = [*self.exit_grammar, *self.wake_grammar]
+            self.recognizer = KaldiRecognizer(self.model, 16000)
         else:
             raise ValueError(f"unknown recognition mode: {mode}")
-        grammar = list(dict.fromkeys([*phrases, "[unk]"]))
-        self.recognizer = KaldiRecognizer(
-            self.model,
-            16000,
-            json.dumps(grammar, ensure_ascii=False),
-        )
         self.recognizer.SetWords(False)
         self.last_candidate = ""
 

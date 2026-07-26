@@ -1,6 +1,6 @@
 ---
 name: codex-voice-wake
-description: Install, configure, diagnose, or validate an experimental local wake-word launcher for ChatGPT/Codex desktop Voice on macOS or Windows. Use when a user wants to choose any custom wake phrase, keep a private offline Vosk listener running at login, hear a local acknowledgement, open Voice with F20, leave with a standalone exit phrase, recover after a missed exit, or verify microphone, keyboard-control, signing, startup, and real spoken acceptance boundaries.
+description: Install, configure, diagnose, or validate an experimental local wake-word launcher for ChatGPT/Codex desktop Voice on macOS or Windows. Use when a user wants to choose any custom wake phrase, keep a private offline Vosk listener running at login, hear a local acknowledgement, open Voice with F20, leave with a standalone exit phrase, reject command words embedded in longer speech, or verify microphone, keyboard-control, signing, startup, and real spoken acceptance boundaries.
 ---
 
 # Codex Voice Wake
@@ -51,11 +51,12 @@ preserve permission identity, and separate automated evidence from human speech.
 
 ## State-machine invariants
 
-- In `idle`, accept only an exact normalized configured wake phrase.
-- In `waiting_exit`, accept standalone final EXIT before recovery wake.
+- In `idle`, accept only a final whole-utterance configured wake phrase.
+- In `waiting_exit`, ignore every wake phrase and accept only a final
+  whole-utterance EXIT.
 - Return to `idle` before the host sends Escape.
-- Keep wake grammar active in `waiting_exit`; a new wake recovers from Voice
-  closing externally or a missed exit.
+- Decode unrestricted speech in `waiting_exit`; an exit-only constrained grammar
+  can coerce similar speech into the exit command.
 - Do not impose a short conversation timeout.
 
 ## Completion evidence

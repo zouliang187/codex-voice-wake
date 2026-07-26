@@ -13,6 +13,7 @@ class WakeStateMachineTests(unittest.TestCase):
 
     def test_arbitrary_unicode_phrase_is_normalized(self):
         machine = self.make_machine()
+        self.assertIsNone(machine.accept("电脑 请听！", "partial", 1))
         event = machine.accept("电脑 请听！", "final", 1)
         self.assertEqual(event["event"], "wake")
         self.assertFalse(event["recovered"])
@@ -34,12 +35,17 @@ class WakeStateMachineTests(unittest.TestCase):
         self.assertFalse(event["recovered"])
         self.assertEqual(machine.events, ["wake", "exit", "wake"])
 
-    def test_missed_exit_next_wake_recovers(self):
+    def test_wake_is_ignored_during_active_conversation(self):
         machine = self.make_machine()
         machine.accept("电脑请听", "final", 1)
-        event = machine.accept("电脑请听", "final", 5)
-        self.assertTrue(event["recovered"])
-        self.assertEqual(machine.events, ["wake", "wake"])
+        self.assertIsNone(machine.accept("电脑请听", "final", 5))
+        self.assertIsNone(machine.accept("我刚才说电脑请听只是举例", "final", 6))
+        self.assertEqual(machine.events, ["wake"])
+
+    def test_embedded_wake_is_ignored_while_idle(self):
+        machine = self.make_machine()
+        self.assertIsNone(machine.accept("我刚才说电脑请听只是举例", "final", 1))
+        self.assertEqual(machine.events, [])
 
     def test_empty_phrases_are_rejected(self):
         with self.assertRaises(ValueError):

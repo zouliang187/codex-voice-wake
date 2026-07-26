@@ -57,13 +57,17 @@ class WakeService:
         self.set_recognition_mode("wake")
 
     def set_recognition_mode(self, mode):
-        phrases = self.wake_grammar if mode == "wake" else [*self.exit_grammar, *self.wake_grammar]
-        grammar = list(dict.fromkeys([*phrases, "[unk]"]))
-        self.recognizer = KaldiRecognizer(
-            self.model,
-            16000,
-            json.dumps(grammar, ensure_ascii=False),
-        )
+        if mode == "wake":
+            grammar = list(dict.fromkeys([*self.wake_grammar, "[unk]"]))
+            self.recognizer = KaldiRecognizer(
+                self.model,
+                16000,
+                json.dumps(grammar, ensure_ascii=False),
+            )
+        elif mode == "waiting":
+            self.recognizer = KaldiRecognizer(self.model, 16000)
+        else:
+            raise ValueError("unknown recognition mode: %s" % mode)
         self.recognizer.SetWords(False)
 
     def inspect(self, raw, kind):

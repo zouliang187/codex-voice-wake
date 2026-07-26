@@ -38,7 +38,7 @@ class WakeStateMachine:
         if not candidate:
             return None
         if self.state == "idle":
-            if audio_clock < self.wake_armed_at or candidate not in self.wake_phrases:
+            if kind != "final" or audio_clock < self.wake_armed_at or candidate not in self.wake_phrases:
                 return None
             self.state = "waiting_exit"
             self.exit_armed_at = audio_clock + self.exit_arm_delay
@@ -51,9 +51,4 @@ class WakeStateMachine:
             self.wake_armed_at = audio_clock + self.post_exit_suppress
             self.events.append("exit")
             return {"event": "exit", "matched": candidate, "state": self.state}
-        if candidate not in self.wake_phrases:
-            return None
-        self.state = "waiting_exit"
-        self.exit_armed_at = audio_clock + self.exit_arm_delay
-        self.events.append("wake")
-        return {"event": "wake", "matched": candidate, "state": self.state, "recovered": True}
+        return None
