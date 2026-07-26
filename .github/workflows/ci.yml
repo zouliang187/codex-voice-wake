@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   portable-python:
     strategy:
@@ -11,8 +14,8 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - name: State-machine and scaffolder tests
@@ -44,7 +47,7 @@ jobs:
   macos-static:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Shell syntax
         run: zsh -n skill/codex-voice-wake/scripts/*.sh skill/codex-voice-wake/assets/macos-template/scripts/*.sh
       - name: Swift host typecheck
