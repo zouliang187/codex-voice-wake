@@ -24,11 +24,13 @@ mkdir -p "$WORK"
 
 WAKE_TEXT="$($PYTHON -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["wakePhrases"][0])' "$CONFIG")"
 EXIT_TEXT="$($PYTHON -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["exitPhrases"][0])' "$CONFIG")"
+SYNTHETIC_VOICE="$($PYTHON -c 'import json,sys; data=json.load(open(sys.argv[1], encoding="utf-8")); print(data.get("syntheticVoice") or data.get("acknowledgementVoice", ""))' "$CONFIG")"
 SENTENCE_TEXT="请不要把${EXIT_TEXT}当成单独口令"
 
-say -r 155 -o "$WAKE_AIFF" "$WAKE_TEXT"
-say -r 155 -o "$EXIT_AIFF" "$EXIT_TEXT"
-say -r 155 -o "$SENTENCE_AIFF" "$SENTENCE_TEXT"
+[[ -n "$SYNTHETIC_VOICE" ]] || { echo "Set syntheticVoice or acknowledgementVoice in config.json." >&2; exit 4; }
+say -v "$SYNTHETIC_VOICE" -r 155 -o "$WAKE_AIFF" "$WAKE_TEXT"
+say -v "$SYNTHETIC_VOICE" -r 155 -o "$EXIT_AIFF" "$EXIT_TEXT"
+say -v "$SYNTHETIC_VOICE" -r 155 -o "$SENTENCE_AIFF" "$SENTENCE_TEXT"
 ffmpeg -hide_banner -loglevel error -y -i "$WAKE_AIFF" -ar 16000 -ac 1 -c:a pcm_s16le "$WAKE_WAV"
 ffmpeg -hide_banner -loglevel error -y -i "$EXIT_AIFF" -ar 16000 -ac 1 -c:a pcm_s16le "$EXIT_WAV"
 ffmpeg -hide_banner -loglevel error -y -i "$SENTENCE_AIFF" -ar 16000 -ac 1 -c:a pcm_s16le "$SENTENCE_WAV"
