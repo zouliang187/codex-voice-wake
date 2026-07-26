@@ -74,8 +74,12 @@ the shortcut is configured in **Settings > Voice > Voice chat hotkey**:
 
 Levels 1–4 never substitute for level 5.
 
-The original end-to-end implementation was validated on one Apple silicon Mac
-mini. Other Macs and every new custom phrase still require level 5 acceptance.
+The reference implementation was revalidated on one Apple silicon Mac mini
+after the standalone-command fix. A natural wake opened Voice; a sentence that
+contained both command phrases caused no listener event; a standalone exit
+closed Voice and returned the listener to `idle`; and a later standalone wake
+opened Voice again. Other Macs and every new custom phrase still require level
+5 acceptance.
 
 ## Privacy checks
 

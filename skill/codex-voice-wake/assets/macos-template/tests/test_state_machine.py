@@ -21,6 +21,7 @@ class WakeStateMachineTests(unittest.TestCase):
     def test_exit_is_standalone_final_and_returns_idle_first(self):
         machine = self.make_machine()
         machine.accept("Hey Codex", "final", 1)
+        self.assertIsNone(machine.accept("移除", "final", 5))
         self.assertIsNone(machine.accept("请结束对话吧", "final", 5))
         self.assertIsNone(machine.accept("结束对话", "partial", 5))
         event = machine.accept("结束对话", "final", 5)

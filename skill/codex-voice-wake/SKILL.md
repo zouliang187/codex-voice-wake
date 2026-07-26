@@ -14,8 +14,9 @@ preserve permission identity, and separate automated evidence from human speech.
   security settings.
 - Do not record, retain, upload, or log microphone transcripts by default.
 - Never use synthetic playback as proof of natural spoken success.
-- Treat the macOS path as previously validated on one Apple silicon Mac setup;
-  re-accept every new phrase and machine.
+- Treat the macOS path as validated on one Apple silicon Mac setup, including
+  rejection of command phrases embedded in natural speech; re-accept every new
+  phrase and machine.
 - Treat Windows as experimental until a real Windows device completes the full
   spoken loop. CI and unit tests are not runtime acceptance.
 - Do not claim a cold launch works until a fully quit ChatGPT app is launched
@@ -47,7 +48,8 @@ preserve permission identity, and separate automated evidence from human speech.
    run the optional local synthetic-ASR diagnostic after building.
 8. Perform one natural spoken acceptance from a normal non-Voice screen:
    chosen wake → local acknowledgement → Voice overlay → wait at least three
-   seconds → standalone exit → Voice closes → chosen wake starts Voice again.
+   seconds → a natural sentence containing both commands causes no action →
+   standalone exit → Voice closes → chosen wake starts Voice again.
 
 ## State-machine invariants
 

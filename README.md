@@ -18,7 +18,7 @@ uploaded, recorded, or written into transcript logs by default.
 
 | Platform | Implementation | Evidence | Honest status |
 | --- | --- | --- | --- |
-| macOS | Swift host, Vosk worker, local `say`, F20/Escape, LaunchAgent | Built, signed, state-machine tested, and originally accepted end to end on one Apple silicon Mac mini | Validated starting point; every machine and custom phrase needs natural speech acceptance |
+| macOS | Swift host, Vosk worker, local `say`, F20/Escape, LaunchAgent | Built, signed, state-machine tested, and revalidated end to end on one Apple silicon Mac mini after the standalone-command fix | Validated starting point; every machine and custom phrase needs natural speech acceptance |
 | Windows | Python/Vosk/sounddevice, local SAPI, pywin32 F20/Escape, user Startup entry | Dependency-free unit tests, Python compilation, PowerShell parser CI | Experimental; no real Windows device or ChatGPT Voice loop has been verified |
 
 The fully quit-app cold-launch path is not accepted end to end on either
@@ -109,6 +109,13 @@ complete result. On the target computer, from a normal non-Voice screen:
 4. Wait at least three seconds and say the standalone exit phrase.
 5. Confirm Voice closes.
 6. Say the wake phrase again and confirm a second Voice session starts.
+
+The reference macOS setup passed this full loop after the standalone-command
+fix. Its acceptance also covered a natural sentence containing both configured
+commands: the listener emitted neither a wake nor an exit event. A standalone
+exit then returned the listener to `idle`, and a later standalone wake opened a
+new Voice session. This is reference evidence, not a substitute for repeating
+the same acceptance on each target machine and custom phrase.
 
 ## Privacy and risks
 
