@@ -1,0 +1,4 @@
+vosk==0.3.45
+sounddevice==0.5.2
+pywin32==311
+psutil==7.0.0

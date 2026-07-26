@@ -1,50 +1,46 @@
 # Architecture and state machine
 
-## Components
+## Shared behavior
 
-- `CodexVoiceWake.app`: a menu-less Swift `LSUIElement` host.
-- `AVAudioEngine`: captures the current default input and converts it to 16 kHz
-  mono signed 16-bit PCM in memory.
-- `wake_listener.py`: Vosk recognizer using constrained Mandarin grammars.
-- `launchd`: keeps the host alive at login.
-- macOS `say`: speaks the local acknowledgement. No cloud TTS is required.
-- macOS accessibility events: send F20 to start Voice and Escape to leave Voice.
-
-Audio is piped to the worker and is not written to disk. Transcript logging is
-off by default.
-
-## State transitions
+Both platform templates use a constrained Vosk grammar and the same
+dependency-free state machine. `wakePhrases` and `exitPhrases` are arrays of
+user-selected Unicode strings. Matching applies NFKC normalization, case
+folding, and removes punctuation/spacing, then requires equality.
 
 ```text
-idle --wake--> waiting_exit --standalone exit--> idle
-                         \
-                          --wake--> waiting_exit (recovered wake)
+idle --custom wake--> waiting_exit --standalone exit--> idle
+                              \
+                               --custom wake--> waiting_exit (recovered)
 ```
 
-`waiting_exit` uses a union grammar containing exit phrases and wake phrases.
-Exit is checked first and only accepts a final result whose entire normalized
-text is one configured exit phrase. A recovery wake is accepted only after the
-same short arming delay used to suppress the original wake tail.
+EXIT is final-only and checked before recovery wake. State changes to `idle`
+before Escape is emitted. The recovery branch stays in `waiting_exit`; there is
+no conversation timeout.
 
-The recovery branch deliberately remains in `waiting_exit`: it represents a new
-Voice session that will also need an exit. There is no conversation timeout.
+Audio is processed as 16 kHz mono PCM in memory. Transcript logging is off by
+default. Phrase text is stored in the user's local `config.json`; audio is not.
 
-## Product integration
+## macOS host
 
-ChatGPT Voice requires a chat or task that begins in Voice mode. Configure its
-Voice chat hotkey in **Settings > Voice**. The template uses F20 because it is
-unlikely to collide with ordinary shortcuts. The current app key code is `90`
-(`kVK_F20`).
+An `LSUIElement` Swift app captures and converts audio with `AVAudioEngine`,
+pipes it to the Python/Vosk worker, speaks with `say`, and posts F20/Escape using
+Accessibility events. A LaunchAgent keeps it alive after login.
 
-Voice uses a separate Electron renderer window commonly logged as
-`avatarOverlay`. A normal task window remaining visible does not prove that the
-hotkey failed; inspect all ChatGPT windows or the product’s realtime logs.
+## Windows host
 
-## Known boundary
+One Python process captures audio with `sounddevice`, runs Vosk and the state
+machine, speaks through local SAPI, focuses a ChatGPT window with pywin32, and
+sends F20/Escape. A command in the user's Startup folder launches it at login.
 
-The host contains a branch that launches ChatGPT when it is not running, then
-sends F20 after a fixed activation delay. Real cold launch has not been accepted
-end to end. App process launch does not prove that the renderer, keybindings,
-and Voice service were ready before F20. Keep this boundary in user-facing
-reports until a natural spoken cold-start test passes.
+The Windows implementation has unit/static/CI coverage but no real-device Voice
+acceptance yet. Foreground-window restrictions, app process naming, microphone
+privacy, audio drivers, and the ChatGPT distribution can change runtime results.
 
+## Product boundary
+
+Configure **Settings > Voice > Voice chat hotkey** to F20 and restart ChatGPT.
+Voice may use a separate overlay from the ordinary task window. Voice feature
+availability depends on the user's plan, rollout, and workspace.
+
+Both templates include an optional cold-launch branch, but neither platform may
+be reported as cold-launch verified without a fully quit-app natural speech test.

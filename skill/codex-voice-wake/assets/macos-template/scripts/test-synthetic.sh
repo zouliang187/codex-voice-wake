@@ -4,6 +4,7 @@ set -euo pipefail
 PROJECT_DIR="${0:A:h:h}"
 MODEL="$PROJECT_DIR/runtime/models/vosk-model-small-cn-0.22"
 PYTHON="$PROJECT_DIR/runtime/venv/bin/python"
+CONFIG="$PROJECT_DIR/config.json"
 WORK="$PROJECT_DIR/work/tests"
 WAKE_AIFF="$WORK/wake.aiff"
 EXIT_AIFF="$WORK/exit.aiff"
@@ -17,21 +18,17 @@ REWAKE_WAV="$WORK/wake-exit-wake.wav"
 MISSED_EXIT_WAV="$WORK/missed-exit-wake.wav"
 
 [[ -d "$MODEL" ]] || { echo "Run scripts/build.sh first." >&2; exit 2; }
+[[ -f "$CONFIG" ]] || { echo "Missing config.json; scaffold with a chosen wake phrase first." >&2; exit 2; }
 command -v ffmpeg >/dev/null 2>&1 || { echo "ffmpeg is required." >&2; exit 3; }
 mkdir -p "$WORK"
 
-voice=""
-for candidate in Tingting Yu-shu Meijia; do
-  if say -v '?' | awk '{print $1}' | grep -x "$candidate" >/dev/null; then
-    voice="$candidate"
-    break
-  fi
-done
-[[ -n "$voice" ]] || { echo "Install a macOS Mandarin voice." >&2; exit 4; }
+WAKE_TEXT="$($PYTHON -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["wakePhrases"][0])' "$CONFIG")"
+EXIT_TEXT="$($PYTHON -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["exitPhrases"][0])' "$CONFIG")"
+SENTENCE_TEXT="请不要把${EXIT_TEXT}当成单独口令"
 
-say -v "$voice" -r 155 -o "$WAKE_AIFF" "小亮小亮"
-say -v "$voice" -r 155 -o "$EXIT_AIFF" "退出"
-say -v "$voice" -r 155 -o "$SENTENCE_AIFF" "请帮我退出这个程序"
+say -r 155 -o "$WAKE_AIFF" "$WAKE_TEXT"
+say -r 155 -o "$EXIT_AIFF" "$EXIT_TEXT"
+say -r 155 -o "$SENTENCE_AIFF" "$SENTENCE_TEXT"
 ffmpeg -hide_banner -loglevel error -y -i "$WAKE_AIFF" -ar 16000 -ac 1 -c:a pcm_s16le "$WAKE_WAV"
 ffmpeg -hide_banner -loglevel error -y -i "$EXIT_AIFF" -ar 16000 -ac 1 -c:a pcm_s16le "$EXIT_WAV"
 ffmpeg -hide_banner -loglevel error -y -i "$SENTENCE_AIFF" -ar 16000 -ac 1 -c:a pcm_s16le "$SENTENCE_WAV"
@@ -54,7 +51,7 @@ run_test() {
   echo "$name:"
   PYTHONPATH="$($PYTHON -c 'import site; print(site.getsitepackages()[0])')" \
     "$PYTHON" "$PROJECT_DIR/wake_listener.py" \
-    --model "$MODEL" --config "$PROJECT_DIR/config.example.json" \
+    --model "$MODEL" --config "$CONFIG" \
     --wav "$wav" --expect-sequence "$expected"
 }
 

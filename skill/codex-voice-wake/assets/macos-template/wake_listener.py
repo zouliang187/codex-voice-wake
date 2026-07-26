@@ -8,7 +8,6 @@ compatible WAV passed with --wav. Audio is never written by this process.
 import argparse
 import json
 import sys
-import unicodedata
 import warnings
 import wave
 from pathlib import Path
@@ -16,14 +15,7 @@ from pathlib import Path
 warnings.filterwarnings("ignore", message="urllib3 v2 only supports OpenSSL")
 
 from vosk import KaldiRecognizer, Model, SetLogLevel
-
-
-def normalize(text):
-    return "".join(
-        ch.casefold()
-        for ch in unicodedata.normalize("NFKC", text)
-        if ch.isalnum()
-    )
+from state_machine import WakeStateMachine, normalize
 
 
 def load_config(path):
@@ -42,18 +34,19 @@ class Detector:
         self.model = Model(str(model_path))
         self.wake_grammar = list(dict.fromkeys(config["wakePhrases"]))
         self.exit_grammar = list(dict.fromkeys(config.get("exitPhrases", ["退出"])))
-        self.wake_phrases = [normalize(item) for item in self.wake_grammar]
-        self.exit_phrases = [normalize(item) for item in self.exit_grammar]
         self.recognizer = None
         self.exit_arm_delay = float(config.get("exitArmDelaySeconds", 3.0))
         self.post_exit_suppress = float(config.get("postExitSuppressSeconds", 3.0))
         self.log_transcripts = bool(config.get("logTranscripts", False))
         self.last_candidate = ""
-        self.state = "idle"
         self.audio_clock = 0.0
-        self.exit_armed_at = float("inf")
-        self.wake_armed_at = 0.0
-        self.events = []
+        self.machine = WakeStateMachine(
+            self.wake_grammar,
+            self.exit_grammar,
+            self.exit_arm_delay,
+            self.post_exit_suppress,
+        )
+        self.events = self.machine.events
         self.set_recognition_mode("wake")
 
     def set_recognition_mode(self, mode):
@@ -85,57 +78,11 @@ class Detector:
         if not candidate:
             return False
 
-        if self.state == "idle":
-            if self.audio_clock < self.wake_armed_at:
-                return False
-            matched = next((phrase for phrase in self.wake_phrases if phrase == candidate), None)
-            if not matched:
-                return False
-            self.state = "waiting_exit"
-            self.exit_armed_at = self.audio_clock + self.exit_arm_delay
-            self.events.append("wake")
-            emit({"event": "wake", "matched": matched, "state": self.state, "recovered": False})
-            self.set_recognition_mode("waiting")
-            return True
-
-        if self.audio_clock < self.exit_armed_at:
+        event = self.machine.accept(text, kind, self.audio_clock)
+        if not event:
             return False
-
-        # Exit is final-only, exact, and checked before recovery wake. Change to
-        # idle before emitting so the host's Escape action cannot strand state.
-        if kind == "final":
-            matched_exit = next(
-                (phrase for phrase in self.exit_phrases if candidate == phrase),
-                None,
-            )
-            if matched_exit:
-                self.state = "idle"
-                self.wake_armed_at = self.audio_clock + self.post_exit_suppress
-                self.events.append("exit")
-                emit({"event": "exit", "matched": matched_exit, "state": self.state})
-                self.set_recognition_mode("wake")
-                return True
-
-        # Voice may have closed externally or EXIT may have been missed. Accept
-        # the next deliberate wake without imposing a conversation timeout.
-        matched_wake = next(
-            (phrase for phrase in self.wake_phrases if candidate == phrase),
-            None,
-        )
-        if not matched_wake:
-            return False
-        self.state = "waiting_exit"
-        self.exit_armed_at = self.audio_clock + self.exit_arm_delay
-        self.events.append("wake")
-        emit(
-            {
-                "event": "wake",
-                "matched": matched_wake,
-                "state": self.state,
-                "recovered": True,
-            }
-        )
-        self.set_recognition_mode("waiting")
+        emit(event)
+        self.set_recognition_mode("wake" if event["event"] == "exit" else "waiting")
         return True
 
     def feed(self, chunk):

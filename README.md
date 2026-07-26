@@ -1,44 +1,39 @@
 # Codex Voice Wake
 
-An experimental macOS Skill and local launcher that turns ChatGPT/Codex Voice
-into a smart-speaker-like workflow:
+An experimental, local-first Codex Skill that turns ChatGPT/Codex desktop Voice
+into a customizable smart-speaker-like workflow:
 
 ```text
-“小亮小亮” → local “在呢” → ChatGPT Voice → “退出” → ready again
+<your wake phrase> → local acknowledgement → ChatGPT Voice
+                  → <standalone exit phrase> → ready again
 ```
 
-The wake detector runs locally with Vosk. Microphone audio stays in memory and
-is not uploaded, saved, or written into transcripts by default.
+Choose the phrase during setup; it is configuration, not hard-coded behavior.
+The listener uses Vosk locally. Microphone audio stays in memory and is not
+uploaded, recorded, or written into transcript logs by default.
 
 > Unofficial community project. Not affiliated with or supported by OpenAI.
 
+## Platform status
+
+| Platform | Implementation | Evidence | Honest status |
+| --- | --- | --- | --- |
+| macOS | Swift host, Vosk worker, local `say`, F20/Escape, LaunchAgent | Built, signed, state-machine tested, and originally accepted end to end on one Apple silicon Mac mini | Validated starting point; every machine and custom phrase needs natural speech acceptance |
+| Windows | Python/Vosk/sounddevice, local SAPI, pywin32 F20/Escape, user Startup entry | Dependency-free unit tests, Python compilation, PowerShell parser CI | Experimental; no real Windows device or ChatGPT Voice loop has been verified |
+
+The fully quit-app cold-launch path is not accepted end to end on either
+platform. Keep ChatGPT running for the proven first setup.
+
 ## What is included
 
-- A reusable Codex Skill in [`skill/codex-voice-wake`](skill/codex-voice-wake).
-- A complete Swift + Python project template bundled with the Skill.
-- Login-persistent LaunchAgent installation.
-- Local macOS TTS acknowledgement (“在呢”).
-- F20 integration with **Settings > Voice > Voice chat hotkey**.
-- Standalone “退出” handling and missed-exit recovery: if Voice closes outside
-  the listener, the next wake phrase is accepted instead of being ignored
-  forever.
-- Offline state-machine regressions and a strict real-speech acceptance plan.
-
-## Requirements
-
-- macOS 13 or newer. Initial end-to-end validation was on Apple silicon Mac
-  mini; other Macs are not yet verified.
-- The current ChatGPT desktop app with Voice available for the account and
-  workspace.
-- Apple Command Line Tools, `/usr/bin/python3`, `curl`, and `unzip`.
-- `ffmpeg` only for synthetic diagnostic tests.
-- Microphone permission for ChatGPT and the installed wake host; Accessibility
-  permission for the wake host.
-
-Official ChatGPT Voice guidance says a task must begin in Voice mode and the
-shortcut is configured under **Settings > Voice > Voice chat hotkey**. Voice
-availability also depends on plan, rollout, and workspace settings. See
-[ChatGPT Voice](https://learn.chatgpt.com/docs/features/voice).
+- A reusable Skill at [`skill/codex-voice-wake`](skill/codex-voice-wake).
+- Separate macOS and Windows project templates.
+- A safe scaffolder that requires the chosen wake phrase and refuses to
+  overwrite a non-empty target.
+- Editable wake, exit, acknowledgement, input-device, and privacy settings.
+- Missed-exit recovery: if Voice closes elsewhere, the next wake phrase starts
+  a new attempt instead of being ignored forever.
+- Windows CI plus platform-independent state-machine regressions.
 
 ## Install the Skill
 
@@ -48,76 +43,74 @@ mkdir -p "$HOME/.agents/skills"
 cp -R codex-voice-wake/skill/codex-voice-wake "$HOME/.agents/skills/"
 ```
 
-Restart Codex if the Skill does not appear, then invoke:
+On Windows PowerShell, copy the Skill to `$HOME\.agents\skills\codex-voice-wake`.
+Restart Codex if it does not appear, then invoke:
 
 ```text
-Use $codex-voice-wake to install and verify the local Voice wake launcher.
+Use $codex-voice-wake to build my local Voice wake launcher.
 ```
 
-Codex will run the environment check, scaffold a fresh local project, build and
-install the app, configure F20 without deleting unrelated keybindings, guide the
-two macOS permissions, and run validation.
+The Skill's first action is to ask which wake phrase you want. It then selects
+the macOS or Windows path, scaffolds a project, and guides installation and
+evidence-based acceptance.
 
-## Manual project setup
+## Manual scaffold
+
+The phrase can be any non-empty Unicode string. Repeat `--wake-phrase` for
+spacing or ASR spelling variants:
 
 ```sh
-skill/codex-voice-wake/scripts/check-environment.sh
-skill/codex-voice-wake/scripts/scaffold-project.sh ./local-project
-cd ./local-project
-./scripts/build.sh
-./scripts/install-login.sh
-../skill/codex-voice-wake/scripts/configure-f20.py
+python3 skill/codex-voice-wake/scripts/scaffold_project.py \
+  --platform macos \
+  --target ./local-macos-project \
+  --wake-phrase "<your phrase>" \
+  --wake-phrase "<recognition variant>"
 ```
 
-Fully quit and reopen ChatGPT after changing the hotkey. Add the exact installed
-`~/Applications/CodexVoiceWake.app` to Microphone and Accessibility. Do not add
-the copy inside `build/`; macOS permissions are identity- and path-sensitive.
-
-## Validation
-
-Automated diagnostics:
-
-```sh
-./scripts/status.sh
-./scripts/test-synthetic.sh
+```powershell
+py -3 skill\codex-voice-wake\scripts\scaffold_project.py `
+  --platform windows `
+  --target .\local-windows-project `
+  --wake-phrase "<your phrase>"
 ```
 
-Final acceptance must use the person’s natural voice from a normal non-Voice
-screen:
+Configuration accepts arbitrary phrase text; Vosk can only recognize words
+covered by the selected language model. The bundled installers use a pinned
+small Mandarin model. Other languages require a matching local Vosk model.
 
-1. Say “小亮小亮” and hear “在呢”.
-2. Confirm the separate Voice overlay appears.
-3. Wait at least three seconds and say standalone “退出”.
+## Platform guides
+
+- [macOS installation, signing, permissions, and validation](skill/codex-voice-wake/references/macos.md)
+- [Windows experimental installation and validation](skill/codex-voice-wake/references/windows.md)
+- [Shared state-machine architecture](skill/codex-voice-wake/references/architecture.md)
+
+ChatGPT Voice must be available for the account/workspace. Set **Settings >
+Voice > Voice chat hotkey** to F20 and restart ChatGPT. Official Voice guidance:
+[ChatGPT Voice](https://learn.chatgpt.com/docs/features/voice).
+
+## Required acceptance
+
+Synthetic audio, unit tests, CI, or an injected F20 key are diagnostics—not a
+complete result. On the target computer, from a normal non-Voice screen:
+
+1. Naturally say the chosen wake phrase and hear the local acknowledgement.
+2. Confirm the separate Voice UI appears.
+3. Wait at least three seconds and say the standalone exit phrase.
 4. Confirm Voice closes.
-5. Say “小亮小亮” again and confirm a second Voice session starts.
+5. Say the wake phrase again and confirm a second Voice session starts.
 
-Speaker playback and synthetic WAV tests are useful diagnostics, but they do not
-prove real spoken wake-word reliability.
+## Privacy and risks
 
-## Privacy and security
-
-- Audio remains local and in memory.
-- `logTranscripts` defaults to `false`.
-- The repository excludes models, virtual environments, builds, generated
-  audio, user configs, LaunchAgent plists, application logs, TCC databases, and
-  account data.
-- The app uses ad-hoc signing with a fixed designated requirement so updates can
-  retain the same macOS permission identity. Verify the requirement before
-  granting permissions.
-- Review the source and scripts before installing a login-persistent process.
-
-## Honest boundaries
-
-- This is an experiment, not a hardened consumer voice assistant.
-- A fully quit ChatGPT cold launch branch exists, but natural spoken cold launch
-  through Voice has **not** been accepted end to end. Keep ChatGPT running for
-  the proven path.
-- Voice appears in a separate Electron `avatarOverlay`; the ordinary task window
-  can remain visible even when Voice started.
-- Local wake/exit filtering does not prevent television or other people from
-  entering ChatGPT’s microphone after Voice starts.
-- TCC behavior can change across macOS releases. Never reset permissions as a
-  first diagnostic step.
+- Audio remains local and in memory; `logTranscripts` defaults to `false`.
+- Models, virtual environments, builds, generated audio, user configs, logs,
+  LaunchAgent/Startup artifacts, TCC databases, and account data are excluded.
+- Custom phrase text is stored only in the generated local `config.json`.
+- macOS uses a fixed ad-hoc designated requirement to reduce repeated permission
+  identity changes. Verify the installed identity before authorization.
+- Windows foreground focus and key injection can vary by ChatGPT distribution,
+  session state, elevation, and OS policy; no real-device claim is made yet.
+- Wake/exit filtering does not stop television or other people from entering
+  ChatGPT's microphone after Voice begins.
 
 ## License
 

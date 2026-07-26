@@ -42,8 +42,11 @@ if [[ -d "$APP" ]]; then
 fi
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources/python"
 cp "$PROJECT_DIR/Info.plist" "$APP/Contents/Info.plist"
-cp "$PROJECT_DIR/config.example.json" "$APP/Contents/Resources/config.json"
+CONFIG_SOURCE="$PROJECT_DIR/config.json"
+[[ -f "$CONFIG_SOURCE" ]] || CONFIG_SOURCE="$PROJECT_DIR/config.example.json"
+cp "$CONFIG_SOURCE" "$APP/Contents/Resources/config.json"
 cp "$PROJECT_DIR/wake_listener.py" "$APP/Contents/Resources/wake_listener.py"
+cp "$PROJECT_DIR/state_machine.py" "$APP/Contents/Resources/state_machine.py"
 ditto "$MODEL_DIR" "$APP/Contents/Resources/model"
 site_packages="$("$VENV_PYTHON" -c 'import site; print(site.getsitepackages()[0])')"
 ditto "$site_packages" "$APP/Contents/Resources/python"

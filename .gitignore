@@ -1,5 +1,7 @@
 .DS_Store
 local-project/
+.ci/
+config.json
 runtime/
 build/
 work/
@@ -8,4 +10,3 @@ work/
 *.log
 __pycache__/
 *.pyc
-

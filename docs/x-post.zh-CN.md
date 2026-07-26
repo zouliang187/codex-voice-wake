@@ -1,1 +1,1 @@
-把 Codex 变成一台“能叫醒”的智能音箱：在 macOS 上说“小亮小亮”，本机回一句“在呢”，自动进入 ChatGPT Voice；说“退出”后回到待唤醒，漏掉退出也不会永久卡死。现已整理成开源 Codex Skill，音频默认只在本机内存处理。仍是 macOS 实验性项目，欢迎试用、反馈和点个 Star：https://github.com/zouliang187/codex-voice-wake
+把 Codex 变成一台“能叫醒”的桌面智能音箱：先自选一句唤醒词，本机确认后进入 ChatGPT Voice；说退出词回到待唤醒，漏掉退出也能自动恢复。现已整理成开源 Codex Skill，音频默认只在本机内存处理。macOS 有实机闭环经验，Windows 仍是实验性实现，欢迎试用、反馈和 Star：https://github.com/zouliang187/codex-voice-wake

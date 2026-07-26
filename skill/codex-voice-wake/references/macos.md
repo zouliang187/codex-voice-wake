@@ -1,4 +1,22 @@
-# Permissions, signing, and validation
+# macOS installation, permissions, and validation
+
+## Create and build
+
+Run the cross-platform scaffolder from the Skill directory after collecting the
+chosen phrase:
+
+```sh
+python3 scripts/scaffold_project.py --platform macos \
+  --target ./codex-voice-wake-macos --wake-phrase "<chosen phrase>"
+cd ./codex-voice-wake-macos
+./scripts/build.sh
+./scripts/install-login.sh
+```
+
+The bundled downloader is pinned to a small Mandarin Vosk model. Configuration
+accepts any phrase text, but reliable recognition requires a model whose
+language and vocabulary contain it. Add likely ASR variants during scaffolding
+and reject the phrase only after natural voice evidence, not guesswork.
 
 ## Stable identity before authorization
 
@@ -56,6 +74,9 @@ the shortcut is configured in **Settings > Voice > Voice chat hotkey**:
 
 Levels 1–4 never substitute for level 5.
 
+The original end-to-end implementation was validated on one Apple silicon Mac
+mini. Other Macs and every new custom phrase still require level 5 acceptance.
+
 ## Privacy checks
 
 - Keep `logTranscripts=false`.
@@ -63,4 +84,3 @@ Levels 1–4 never substitute for level 5.
   tests, user configs, LaunchAgent plists, logs, or TCC databases.
 - Do not upload audio. Synthetic audio should be generated locally and deleted
   or ignored by version control.
-

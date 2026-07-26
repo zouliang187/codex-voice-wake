@@ -20,7 +20,11 @@ if [[ -d "$TARGET_APP" ]]; then
 fi
 ditto "$SOURCE_APP" "$TARGET_APP"
 if [[ ! -f "$CONFIG" ]]; then
-  cp "$PROJECT_DIR/config.example.json" "$CONFIG"
+  if [[ -f "$PROJECT_DIR/config.json" ]]; then
+    cp "$PROJECT_DIR/config.json" "$CONFIG"
+  else
+    cp "$PROJECT_DIR/config.example.json" "$CONFIG"
+  fi
 fi
 
 plutil -create xml1 "$PLIST"
@@ -40,4 +44,3 @@ echo "Installed: $TARGET_APP"
 echo "Config:    $CONFIG"
 echo "Log:       $HOME/Library/Logs/CodexVoiceWake/wake.log"
 echo "Grant permissions to the installed app, never the build copy."
-

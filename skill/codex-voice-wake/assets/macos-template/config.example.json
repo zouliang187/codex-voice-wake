@@ -1,5 +1,5 @@
 {
-  "wakePhrases": ["小亮小亮", "小亮 小亮", "少量少量", "少量 少量"],
+  "wakePhrases": ["YOUR WAKE PHRASE"],
   "exitPhrases": ["退出"],
   "exitArmDelaySeconds": 3,
   "postExitSuppressSeconds": 3,
@@ -16,4 +16,3 @@
   },
   "logTranscripts": false
 }
-
