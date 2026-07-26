@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  portable-python:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: State-machine and scaffolder tests
+        run: |
+          python -m unittest discover -s skill/codex-voice-wake/assets/macos-template/tests -v
+          python -m unittest discover -s skill/codex-voice-wake/assets/windows-template/tests -v
+          python -m unittest discover -s skill/codex-voice-wake/scripts/tests -v
+      - name: Python static compilation
+        run: |
+          python -m py_compile skill/codex-voice-wake/assets/macos-template/state_machine.py skill/codex-voice-wake/assets/macos-template/wake_listener.py
+          python -m py_compile skill/codex-voice-wake/assets/windows-template/state_machine.py skil/codex-voice-wake/assets/windows-template/wake_service.py
+          python -m py_compile skill/codex-voice-wake/scripts/configure-f20.py skill/codex-voice-wake/scripts/scaffold_project.py
+      - name: PowerShell parser check
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $parseErrors = @()
+          Get-ChildItem skill/codex-voice-wake/assets/windows-template -Recurse -Filter *.ps1 | ForEach-Object {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors) | Out-Null
+            $parseErrors += $errors
+          }
+          if ($parseErrors.Count -gt 0) {
+            $parseErrors | Format-List
+            exit 1
+          }
+
+  macos-static:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@r4
+      - name: Shell syntax
+        run: zsh -n skill/codex-voice-wake/scripts/*.zsh skill/codex-voice-wake/assets/macos-template/scripts/*.sh
+      - name: Swift host typecheck
+        run: |
+          mkdir -p /tmp/codex-voice-wake-swift-cache
+          xcrun swiftc -typecheck \
+            -target "$(uname -m)-apple-macosx13.0" \
+            -module-cache-path /tmp/codex-voice-wake-swift-cache \
+            skill/codex-voice-wake/assets/macos-template/Sources/WakeHost/main.swift
