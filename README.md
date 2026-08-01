@@ -18,7 +18,7 @@ uploaded, recorded, or written into transcript logs by default.
 
 | Platform | Implementation | Evidence | Honest status |
 | --- | --- | --- | --- |
-| macOS | Swift host, Vosk worker, local `say`, F20/Escape, LaunchAgent | Built, signed, state-machine tested, and revalidated end to end on one Apple silicon Mac mini after the standalone-command fix | Validated starting point; every machine and custom phrase needs natural speech acceptance |
+| macOS | Swift host, Vosk worker, local `say`, F20/Escape, LaunchAgent, local realtime event sync | Built, signed, state-machine tested, and revalidated on one Apple silicon Mac mini | Validated starting point; every machine and custom phrase needs natural speech acceptance |
 | Windows | Python/Vosk/sounddevice, local SAPI, pywin32 F20/Escape, user Startup entry | Dependency-free unit tests, Python compilation, PowerShell parser CI | Experimental; no real Windows device or ChatGPT Voice loop has been verified |
 
 The fully quit-app cold-launch path is not accepted end to end on either
@@ -33,6 +33,8 @@ platform. Keep ChatGPT running for the proven first setup.
 - Editable wake, exit, acknowledgement, input-device, and privacy settings.
 - State-isolated commands: only a final standalone wake phrase works while
   idle, and only a final standalone exit phrase works during Voice.
+- On macOS, sync from ChatGPT's local realtime start/stop event types so closing
+  Voice through the UI or another non-spoken path returns the listener to idle.
 - Windows CI plus platform-independent state-machine regressions.
 
 ## Install the Skill
@@ -109,6 +111,8 @@ complete result. On the target computer, from a normal non-Voice screen:
 4. Wait at least three seconds and say the standalone exit phrase.
 5. Confirm Voice closes.
 6. Say the wake phrase again and confirm a second Voice session starts.
+7. End that Voice session with its UI or Escape instead of the spoken exit;
+   confirm the listener reports a `voice_stopped` sync reset and wakes again.
 
 The reference macOS setup passed this full loop after the standalone-command
 fix. Its acceptance also covered a natural sentence containing both configured
@@ -120,6 +124,10 @@ the same acceptance on each target machine and custom phrase.
 ## Privacy and risks
 
 - Audio remains local and in memory; `logTranscripts` defaults to `false`.
+- macOS state sync reads only structured realtime start/stop event types from
+  ChatGPT's local diagnostic logs. It does not read or copy conversation text.
+  This is an internal integration surface and may need maintenance after app
+  updates; activation failure safely returns the listener to idle.
 - Models, virtual environments, builds, generated audio, user configs, logs,
   LaunchAgent/Startup artifacts, TCC databases, and account data are excluded.
 - Custom phrase text is stored only in the generated local `config.json`.

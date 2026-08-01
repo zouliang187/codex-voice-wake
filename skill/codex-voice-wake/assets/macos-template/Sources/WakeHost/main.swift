@@ -78,7 +78,7 @@ final class WakeHost {
     }
 
     func start() {
-        logger.write("START version=1 state_machine=idle recognizer=vosk-constrained-grammar recovery_wake=true audio_saved=false transcripts=\(config.logTranscripts) acknowledgement=\(config.acknowledgementEnabled ?? true)")
+        logger.write("START version=2 state_machine=idle recognizer=vosk-constrained-grammar voice_state_sync=codex-local-events audio_saved=false transcripts=\(config.logTranscripts) acknowledgement=\(config.acknowledgementEnabled ?? true)")
         let promptOptions = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         let axTrusted = AXIsProcessTrustedWithOptions(promptOptions)
         logger.write("PERMISSION accessibility=\(axTrusted)")
@@ -203,6 +203,10 @@ final class WakeHost {
             } else if event == "exit" {
                 logger.write("EXIT detected=true state=idle")
                 exitCodexVoice()
+            } else if event == "voice_state" {
+                logger.write("STATE voice_active=\(object["active"] ?? false) state=waiting_exit")
+            } else if event == "state_reset" {
+                logger.write("STATE sync_reset=true reason=\(object["reason"] ?? "unknown") state=idle")
             } else if event == "transcript", config.logTranscripts {
                 logger.write("TRANSCRIPT \(object["text"] ?? "")")
             }

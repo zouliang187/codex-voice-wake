@@ -11,11 +11,18 @@ punctuation/spacing, then requires final whole-utterance equality.
 ```text
 idle --custom wake--> waiting_exit --standalone exit--> idle
                               \--ordinary speech, including wake--> waiting_exit
+                              \--observed external Voice stop--> idle (macOS)
 ```
 
 Both commands are final-only whole-utterance matches. The wake phrase is ignored
 in `waiting_exit`. State changes to `idle` before Escape is emitted; there is no
 conversation timeout.
+
+The macOS worker separately watches only `realtime_session_started` and
+successful `thread/realtime/stop` event types in ChatGPT's local diagnostic
+logs. It does not inspect conversation text. A stop newer than the wake baseline
+resets the recognizer to `idle`; a failed start also resets after a short
+activation check. Once Voice is active, no duration timeout is applied.
 
 Audio is processed as 16 kHz mono PCM in memory. Transcript logging is off by
 default. Phrase text is stored in the user's local `config.json`; audio is not.
@@ -25,6 +32,10 @@ default. Phrase text is stored in the user's local `config.json`; audio is not.
 An `LSUIElement` Swift app captures and converts audio with `AVAudioEngine`,
 pipes it to the Python/Vosk worker, speaks with `say`, and posts F20/Escape using
 Accessibility events. A LaunchAgent keeps it alive after login.
+
+The diagnostic-log event format is an internal integration surface. Keep the
+parser strict, test it against quoted false positives, and rerun the external
+close acceptance after ChatGPT updates.
 
 ## Windows host
 

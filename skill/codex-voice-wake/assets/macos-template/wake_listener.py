@@ -16,6 +16,7 @@ warnings.filterwarnings("ignore", message="urllib3 v2 only supports OpenSSL")
 
 from vosk import KaldiRecognizer, Model, SetLogLevel
 from state_machine import WakeStateMachine, normalize
+from voice_state import CodexRealtimeLogMonitor, VoiceStateSynchronizer
 
 
 def load_config(path):
@@ -29,7 +30,7 @@ def emit(payload):
 
 
 class Detector:
-    def __init__(self, model_path, config):
+    def __init__(self, model_path, config, enable_voice_sync=True):
         SetLogLevel(-1)
         self.model = Model(str(model_path))
         self.wake_grammar = list(dict.fromkeys(config["wakePhrases"]))
@@ -47,7 +48,35 @@ class Detector:
             self.post_exit_suppress,
         )
         self.events = self.machine.events
+        self.voice_sync = None
+        if enable_voice_sync and config.get("voiceStateSyncEnabled", True):
+            self.voice_sync = VoiceStateSynchronizer(
+                CodexRealtimeLogMonitor(
+                    log_root=config.get("codexLogDirectory"),
+                    process_name=config.get("codexProcessName", "ChatGPT"),
+                ),
+                config.get("voiceActivationTimeoutSeconds", 15.0),
+                config.get("voiceStatePollIntervalSeconds", 1.0),
+            )
         self.set_recognition_mode("wake")
+
+    def reset_to_idle(self, reason):
+        self.machine.reset_to_idle()
+        if self.voice_sync:
+            self.voice_sync.end()
+        self.set_recognition_mode("wake")
+        emit({"event": "state_reset", "reason": reason, "state": "idle"})
+
+    def poll_voice_state(self):
+        if self.machine.state != "waiting_exit" or not self.voice_sync:
+            return
+        result = self.voice_sync.poll(self.audio_clock)
+        if not result:
+            return
+        if result["action"] == "active":
+            emit({"event": "voice_state", "active": True, "state": self.machine.state})
+        elif result["action"] == "reset":
+            self.reset_to_idle(result["reason"])
 
     def set_recognition_mode(self, mode):
         if mode == "wake":
@@ -82,10 +111,16 @@ class Detector:
             return False
         emit(event)
         self.set_recognition_mode("wake" if event["event"] == "exit" else "waiting")
+        if self.voice_sync:
+            if event["event"] == "wake":
+                self.voice_sync.begin(self.audio_clock)
+            else:
+                self.voice_sync.end()
         return True
 
     def feed(self, chunk):
         self.audio_clock += len(chunk) / 2.0 / 16000.0
+        self.poll_voice_state()
         if self.recognizer.AcceptWaveform(chunk):
             return self.inspect(self.recognizer.Result(), "final")
         return self.inspect(self.recognizer.PartialResult(), "partial")
@@ -114,7 +149,11 @@ def main():
     parser.add_argument("--expect-sequence")
     args = parser.parse_args()
 
-    detector = Detector(Path(args.model), load_config(args.config))
+    detector = Detector(
+        Path(args.model),
+        load_config(args.config),
+        enable_voice_sync=not bool(args.wav),
+    )
     found = False
     source = wav_chunks(Path(args.wav)) if args.wav else iter(lambda: sys.stdin.buffer.read(8000), b"")
     for chunk in source:

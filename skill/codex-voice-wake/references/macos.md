@@ -71,8 +71,17 @@ the shortcut is configured in **Settings > Voice > Voice chat hotkey**:
    `thread/realtime/stop`.
 5. **Acceptance**: a person naturally speaks the full wake/exit/wake sequence
    from a normal non-Voice screen.
+6. **External-close acceptance**: after a wake, close Voice through its UI or
+   Escape, confirm `STATE sync_reset=true reason=voice_stopped state=idle`, and
+   naturally wake again.
 
-Levels 1–4 never substitute for level 5.
+Levels 1–4 never substitute for levels 5–6.
+
+The state synchronizer reads only ChatGPT's local realtime start/stop event
+types under `~/Library/Logs/com.openai.codex`; it does not read conversation
+text. If F20 never produces a real start event, the listener returns to `idle`
+after the configured activation check instead of remaining stuck. There is no
+timeout after a real Voice session becomes active.
 
 The reference implementation was revalidated on one Apple silicon Mac mini
 after the standalone-command fix. A natural wake opened Voice; a sentence that

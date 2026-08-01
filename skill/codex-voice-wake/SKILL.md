@@ -50,6 +50,9 @@ preserve permission identity, and separate automated evidence from human speech.
    chosen wake → local acknowledgement → Voice overlay → wait at least three
    seconds → a natural sentence containing both commands causes no action →
    standalone exit → Voice closes → chosen wake starts Voice again.
+9. On macOS, end the second Voice session through the UI or Escape instead of
+   the spoken exit. Require a `voice_stopped` sync reset to `idle`, then wake a
+   third time. Do not claim external-close recovery from unit tests alone.
 
 ## State-machine invariants
 
@@ -60,6 +63,9 @@ preserve permission identity, and separate automated evidence from human speech.
 - Decode unrestricted speech in `waiting_exit`; an exit-only constrained grammar
   can coerce similar speech into the exit command.
 - Do not impose a short conversation timeout.
+- On macOS, inspect only ChatGPT's local realtime start/stop event types. Reset
+  to `idle` after a real stop, app termination, or a failed Voice start; never
+  read or retain conversation text from diagnostic logs.
 
 ## Completion evidence
 

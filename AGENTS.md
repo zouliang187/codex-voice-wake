@@ -18,6 +18,10 @@ wake-phrase launchers for ChatGPT desktop Voice on macOS and Windows.
 - Preserve final standalone wake, final standalone exit, and second-wake behavior.
 - Ignore both command phrases when embedded in longer speech, and ignore wake
   phrases while Voice is active.
+- On macOS, preserve local realtime start/stop synchronization so UI, Escape,
+  app termination, or failed Voice activation cannot strand `waiting_exit`.
+- Never inspect or publish conversation content from ChatGPT diagnostic logs;
+  parse only strict realtime lifecycle event lines.
 - Keep audio local and in memory; transcript logging must default to off.
 - Preserve the macOS bundle identifier and fixed designated requirement unless a
   migration and permission impact are explicitly documented.

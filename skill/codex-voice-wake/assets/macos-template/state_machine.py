@@ -33,6 +33,11 @@ class WakeStateMachine:
         self.wake_armed_at = 0.0
         self.events = []
 
+    def reset_to_idle(self):
+        self.state = "idle"
+        self.exit_armed_at = float("inf")
+        self.wake_armed_at = 0.0
+
     def accept(self, text, kind, audio_clock):
         candidate = normalize(text)
         if not candidate:
